@@ -46,3 +46,4 @@ $ curl -X GET 'http://localhost:3001'
  - [ ] Split Router
  - [ ] Path Regexp
  - [ ] UnitTest
+ - [ ] Promise Chaining for Async/Await Middlewares
