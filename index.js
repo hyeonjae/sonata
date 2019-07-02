@@ -1,37 +1,45 @@
-const http = require('http')
-const Sonata = require('./Sonata')
+module.exports = class Sonata {
+  constructor(http) {
+    this.http = http
+    this.finalHandler = (req, res) => { }
+    this.middlewares = []
+  }
 
-const sonata = new Sonata(http)
+  use(handler) {
+    this.middlewares.push({
+      type: 'middleware',
+      handler,
+    })
+  }
 
-sonata.use((req, res, next) => {
-  console.log('first middleware >>>')
+  route(path, handler) {
+    this.middlewares.push({
+      type: 'router',
+      path,
+      handler,
+    })
+  }
 
-  next()
+  engine() {
+    return (req, res) => {
+      this.req = req
+      this.res = res
+      return this.dispatch(0)
+    }
+  }
 
-  console.log('first middleware <<<')
-})
+  dispatch(i) {
+    const middleware = this.middlewares[i]
+    middleware.handler(this.req, this.res, () => this.dispatch(i + 1))
+  }
 
-sonata.use((req, res, next) => {
-
-  console.log('second middleware >>>')
-
-  next()
-
-  console.log('second middleware <<<')
-})
-
-sonata.use((req, res, next) => {
-  console.log('third middleware')
-
-  res.writeHead(200, {'Content-Type': 'application/json'})
-  res.write(JSON.stringify({message: 'hello'}))
-  res.end()
-})
-
-sonata.use((req, res, next) => {
-  console.log('forth middleware')
-})
-
-const [port, host] = [3001, 'localhost']
-
-sonata.listen(port, host)
+  listen(port = 3000, host = 'localhost') {
+    this.middlewares.push(this.finalHandler)
+    const server = this.http.createServer(this.engine())
+    return new Promise((resolve, reject) => {
+      server.listen(port, host, () => {
+        resolve()
+      })
+    })
+  }
+}
